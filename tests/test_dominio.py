@@ -1,3 +1,8 @@
+from datetime import date, datetime, timedelta
+import pytest
+from app.enums import PrioridadeTarefa, StatusTarefa
+from app.exceptions import ValorInvalido
+from app.models import Tarefa, Usuario
 from datetime import date, timedelta
 """Testes do domínio: as regras de negócio verificadas direto nos objetos.
 Sem banco, sem HTTP e sem servidor. São os testes mais rápidos e os mais
@@ -59,3 +64,39 @@ def test_email_e_normalizado_na_criacao():
  assert novo_usuario(email=" ANA@Exemplo.COM ").email == "ana@exemplo.com"
 def test_nome_e_gravado_sem_espacos_nas_pontas():
  assert novo_usuario(nome=" Ana Souza ").nome == "Ana Souza"
+ # =============================================================================
+# Dia 2 — `pytest.raises`: o que o objeto recusa
+# =============================================================================
+def test_status_e_somente_leitura():
+ """A única porta para mudar o status são `concluir` e `reabrir`."""
+ tarefa = nova_tarefa()
+ with pytest.raises(AttributeError):
+    tarefa.status = StatusTarefa.CONCLUIDA
+def test_construtor_nao_aceita_status_como_parametro():
+ """RN-02: não existe forma de criar uma tarefa já concluída."""
+ with pytest.raises(TypeError):
+    Tarefa(usuario_id=1, titulo="X", status=StatusTarefa.CONCLUIDA)
+def test_construtor_exige_argumentos_nomeados():
+ """`Usuario("Ana", "ana@exemplo.com")` é erro, e de propósito: nome e
+ e-mail são os dois texto, e uma troca entre eles não seria pega por
+ nenhuma verificação de tipo."""
+ with pytest.raises(TypeError):
+    Usuario("Ana Souza", "ana@exemplo.com")
+def test_construtor_nao_aceita_senha():
+ """A senha não tem como entrar sem passar pelo hash.
+ Este teste protege uma decisão de projeto, não um cálculo. Se alguém
+ acrescentar `senha` ao construtor por conveniência, a suíte avisa.
+ """
+ with pytest.raises(TypeError):
+    Usuario(nome="Ana", email="ana@exemplo.com", senha="senha123")
+def test_prioridade_invalida_e_recusada():
+ with pytest.raises(ValorInvalido):
+    nova_tarefa(prioridade="altissima")
+def test_nome_invalido_e_recusado_tambem_depois_da_criacao():
+ """A validação não vale só no construtor.
+ É o que diferencia `@validates` de uma checagem feita dentro do `__init__`:
+ a regra passa a valer em qualquer atribuição, em qualquer lugar do sistema.
+ """
+ usuario = novo_usuario()
+ with pytest.raises(ValorInvalido):
+    usuario.nome = " "
