@@ -135,3 +135,10 @@ def test_tarefas_pendentes_filtra_as_concluidas():
  concluida.concluir()
  usuario.tarefas = [pendente, concluida]
  assert usuario.tarefas_pendentes() == [pendente]
+def test_concluir_tarefa_ja_concluida_preserva_a_data_original():
+    """O caso que mais reprova implementações ingênuas da RN-03. Concluir de novo uma tarefa já concluída não pode reescrever a data em que ela foi concluída da primeira vez."""
+    original = datetime(2026, 1, 10, 9, 0, 0)
+    tarefa = nova_tarefa()
+    tarefa.concluir(agora=original)
+    tarefa.concluir(agora=datetime(2026, 3, 1, 15, 30, 0))
+    assert tarefa.concluido_em == original
