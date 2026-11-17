@@ -1,3 +1,7 @@
+import pytest # noqa: E402
+from sqlalchemy.orm import Session # noqa: E402
+from app.database import Base, SessionLocal, criar_tabelas, engine # noqa: E402
+from app.security import HashBcrypt # noqa: E402
 """Configuração comum dos testes.
 O pytest encontra este arquivo sozinho e aplica o que há nele a **todos** os
 testes da pasta — não é preciso importá-lo em lugar nenhum. É isso que faz dele
@@ -32,3 +36,19 @@ def hasher() -> HashBcrypt:
  produção vale o padrão de 12, definido em `HashBcrypt.__init__`.
  """
  return HashBcrypt(custo=4)
+# =============================================================================
+# Dia 5 — o banco: limpo antes, limpo depois
+# =============================================================================
+@pytest.fixture(autouse=True)
+def banco_limpo():
+ """Garante um banco vazio no início e no fim de cada teste.
+ `autouse=True` aplica esta fixture a todos os testes, sem que nenhum precise
+ pedi-la. É o que torna o isolamento uma garantia e não uma disciplina: não
+ existe teste que "esqueceu" de limpar o banco.
+ O que vem antes do `yield` roda antes do teste; o que vem depois, ao final —
+ inclusive se o teste falhar.
+ """
+ Base.metadata.drop_all(bind=engine)
+ criar_tabelas()
+ yield
+ Base.metadata.drop_all(bind=engine)
